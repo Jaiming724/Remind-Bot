@@ -13,7 +13,7 @@ public class Bot {
 
 
         DiscordApi api = new DiscordApiBuilder()
-                .setToken("Nzc5NzYwMzU3Nzc4MzkxMTEw.X7lObA.MKc-LBL5Tg4ip_2eRpcvdz9Ctbo").setAllIntents()
+                .setToken("Nzc5NzYwMzU3Nzc4MzkxMTEw.X7lObA.psWZhO3z75jnohljrgRPXw6BrNs").setAllIntents()
                 .login().join();
         Messenger messenger = new Messenger(api);
         ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
