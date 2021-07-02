@@ -17,18 +17,15 @@ public class Bot {
                 .login().join();
         Messenger messenger = new Messenger(api);
         ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
-        exec.scheduleAtFixedRate(new Runnable() {
-
-            @Override
-            public void run() {
-
-                try {
-                    messenger.getReminders();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        exec.scheduleAtFixedRate(() -> {
+            try {
+                messenger.sendReminders();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }, 0, 1, TimeUnit.SECONDS);
+
+        exec.scheduleAtFixedRate(messenger::sendSummary, 0, 30, TimeUnit.SECONDS);
 
 
     }

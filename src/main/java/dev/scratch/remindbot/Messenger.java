@@ -1,7 +1,6 @@
 package dev.scratch.remindbot;
 
 import com.google.gson.Gson;
-import com.vdurmont.emoji.EmojiParser;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -21,6 +20,8 @@ import java.awt.*;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Messenger {
     private CloseableHttpClient httpclient = HttpClients.createDefault();
@@ -45,8 +46,9 @@ public class Messenger {
 
     }
 
-    public void getReminders() throws IOException {
+    public Task getReminders() {
         CloseableHttpResponse response = null;
+        Task task = null;
         try {
             response = httpclient.execute(httpPost);
         } catch (IOException e) {
@@ -60,37 +62,36 @@ public class Messenger {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            Task task = gson.fromJson(result, Task.class);
-            for (int i = 0; i < task.getResults().size(); i++) {
-                String startTime = task.getResults().get(i).getProperties().getDueDate().getDate().getStart();
-                LocalDateTime time = LocalDateTime.parse(startTime.replace("-04:00", ""));
-                if (LocalDateTime.now().compareTo(time) > 0 && (!task.getResults().get(i).getProperties().getReceived().isCheckbox() || !task.getResults().get(i).getProperties().getCompleted().isCheckbox())) {
-                    editDueDate(task.getResults().get(i).getId(), time.plusMinutes(5).toString() + "-04:00");
-
-                    handleEmbed(new Reminder(task.getResults().get(i).getProperties().getName().getTitle().get(0).getPlainText(), time),
-                            task.getResults().get(i).getId());
-
-                }
-
-            }
+            task = gson.fromJson(result, Task.class);
         }
-        response.close();
-    }
-
-    public void editDueDate(String id, String time) {
-        HttpPatch patch = new HttpPatch("https://api.notion.com/v1/pages/" + id);
-        patch.addHeader("Authorization", "Bearer secret_bUuKktfitbXYk3aObA7WT72sIkAXICBMznTqsGoj5Dn");
-        patch.addHeader("Notion-Version", "2021-05-13");
-        patch.addHeader("Content-Type", "application/json");
-        HttpEntity stringEntity = new StringEntity("{\n" + "\"properties\": {\n" + "\"Due_Date\":{     \"date\": {\n" + " \"start\":" + '"' + time + "\"," + "\n" + "\t\"end\":null\n" + "}}\n" + "}\n" + "}", ContentType.APPLICATION_JSON);
-        patch.setEntity(stringEntity);
         try {
-            CloseableHttpResponse res = httpclient.execute(patch);
-            System.out.println(res.getStatusLine());
-            res.close();
-
+            response.close();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+        return task;
+
+
+    }
+
+    public void sendReminders() {
+        Task task = getReminders();
+        if (task == null) {
+            return;
+        }
+        for (int i = 0; i < task.getResults().size(); i++) {
+            String startTime;
+            try {
+                startTime = task.getResults().get(i).getProperties().getDueDate().getDate().getStart();
+            } catch (NullPointerException nullPointerException) {
+                continue;
+            }
+            LocalDateTime time = LocalDateTime.parse(startTime.replace("-04:00", ""));
+            if (LocalDateTime.now().compareTo(time) > 0 && (!task.getResults().get(i).getProperties().getReceived().isCheckbox())) {
+                sendReminderEmbed(new Reminder(task.getResults().get(i).getProperties().getName().getTitle().get(0).getPlainText(), time),
+                        task.getResults().get(i).getId());
+            }
+
         }
     }
 
@@ -112,43 +113,16 @@ public class Messenger {
         }
     }
 
-    public void markAsCompleted(String id) {
-        HttpEntityEnclosingRequestBase patch;
-        System.out.println("https://api.notion.com/v1/pages/" + id);
-        patch = createRequestEntities("patch", "https://api.notion.com/v1/pages/" + id, "{\n" +
-                "  \"properties\": {\n" +
-                "    \"Completed\": { \"checkbox\": true }\n" +
-                "  }\n" +
-                "}");
 
-        try {
-            HttpResponse response = httpclient.execute(patch);
-            System.out.println(response.getStatusLine());
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void handleEmbed(Reminder reminder, String checkboxID) {
+    public void sendReminderEmbed(Reminder reminder, String checkboxID) {
         EmbedBuilder embed = new EmbedBuilder()
                 .setTitle("Reminder")
                 .addField("Time", reminder.getLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a")))
                 .addField("Description", reminder.getContent())
                 .setColor(Color.BLUE);
         api.getChannelById(794751364773314590L).flatMap(Channel::asServerTextChannel).ifPresent(serverTextChannel -> serverTextChannel.sendMessage("<@388155532130779156>"));
-        api.getChannelById(794751364773314590L).flatMap(Channel::asServerTextChannel).ifPresent(serverTextChannel -> serverTextChannel.sendMessage(embed).thenAccept(message -> {
-            message.addReaction("\uD83D\uDC4D");
-            message.addReaction(EmojiParser.parseToUnicode(":white_check_mark:"));
-            message.addReactionAddListener(event -> {
-                if (event.getEmoji().equalsEmoji("\uD83D\uDC4D") && event.getUserId() != 779760357778391110L) {
-                    markAsReceived(checkboxID);
-                }
-                if (event.getEmoji().equalsEmoji(EmojiParser.parseToUnicode(":white_check_mark:")) && event.getUserId() != 779760357778391110L) {
-                    markAsCompleted(checkboxID);
-                }
-            });
-        }));
+        api.getChannelById(794751364773314590L).flatMap(Channel::asServerTextChannel).ifPresent(serverTextChannel -> serverTextChannel.sendMessage(embed));
+        markAsReceived(checkboxID);
 
     }
 
@@ -164,5 +138,39 @@ public class Messenger {
         request.addHeader("Content-Type", "application/json");
         request.setEntity(new StringEntity(jsonData, ContentType.APPLICATION_JSON));
         return request;
+    }
+
+    public void sendSummary() {
+        Task task = getReminders();
+        if (task == null) {
+            return;
+        }
+        List<Reminder> reminders = new ArrayList<>();
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a");
+
+        for (int i = 0; i < task.getResults().size(); i++) {
+            String startTime;
+            try {
+                startTime = task.getResults().get(i).getProperties().getDueDate().getDate().getStart();
+            } catch (NullPointerException nullPointerException) {
+                continue;
+            }
+            LocalDateTime time = LocalDateTime.parse(startTime.replace("-04:00", ""));
+            if (dateFormatter.format(LocalDateTime.now()).equals(dateFormatter.format(time))) {
+                reminders.add(new Reminder(task.getResults().get(i).getProperties().getName().getTitle().get(0).getPlainText(), time));
+            }
+
+        }
+        EmbedBuilder embed = new EmbedBuilder()
+                .setTitle(dateFormatter.format(LocalDateTime.now()) + " Summary")
+                .setColor(Color.BLUE);
+
+        for (Reminder reminder : reminders) {
+            embed.addField(timeFormatter.format(reminder.getLocalDateTime()), reminder.getContent());
+        }
+        api.getChannelById(794751364773314590L).flatMap(Channel::asServerTextChannel).ifPresent(serverTextChannel -> serverTextChannel.sendMessage(embed));
+
+
     }
 }
