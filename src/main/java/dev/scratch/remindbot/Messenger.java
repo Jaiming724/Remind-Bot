@@ -2,7 +2,6 @@ package dev.scratch.remindbot;
 
 import com.google.gson.Gson;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpPatch;
@@ -15,8 +14,7 @@ import org.apache.http.util.EntityUtils;
 import org.javacord.api.DiscordApi;
 import org.javacord.api.entity.channel.Channel;
 import org.javacord.api.entity.message.embed.EmbedBuilder;
-
-import java.awt.*;
+import java.awt.Color;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -96,7 +94,6 @@ public class Messenger {
     }
 
     public void markAsReceived(String id) {
-        System.out.println("https://api.notion.com/v1/pages/" + id);
         HttpEntityEnclosingRequestBase patch;
         patch = createRequestEntities("patch", "https://api.notion.com/v1/pages/" + id, "{\n" +
                 "  \"properties\": {\n" +
@@ -105,12 +102,15 @@ public class Messenger {
                 "}");
 
         try {
-            HttpResponse response = httpclient.execute(patch);
+            CloseableHttpResponse response = httpclient.execute(patch);
             System.out.println(response.getStatusLine());
-
+            response.close();
+            //test
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+
     }
 
 

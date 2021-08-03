@@ -25,7 +25,7 @@ public class Bot {
             }
         }, 0, 1, TimeUnit.SECONDS);
 
-        exec.scheduleAtFixedRate(messenger::sendSummary, 0, 30, TimeUnit.SECONDS);
+        exec.scheduleAtFixedRate(messenger::sendSummary, 6, 24, TimeUnit.HOURS);
 
 
     }
