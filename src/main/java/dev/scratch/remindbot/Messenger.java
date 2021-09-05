@@ -21,12 +21,16 @@ import java.awt.*;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class Messenger {
     private CloseableHttpClient httpclient = HttpClients.createDefault();
     private HttpEntityEnclosingRequestBase httpPost;
     private Gson gson = new Gson();
     private DiscordApi api;
+    private ScheduledExecutorService exec = Executors.newScheduledThreadPool(5);
 
     public Messenger(DiscordApi api) {
         this.api = api;
@@ -63,13 +67,15 @@ public class Messenger {
             Task task = gson.fromJson(result, Task.class);
             for (int i = 0; i < task.getResults().size(); i++) {
                 String startTime = task.getResults().get(i).getProperties().getDueDate().getDate().getStart();
-                LocalDateTime time = LocalDateTime.parse(startTime.replace("-04:00", ""));
-                if (LocalDateTime.now().compareTo(time) > 0 && (!task.getResults().get(i).getProperties().getReceived().isCheckbox() || !task.getResults().get(i).getProperties().getCompleted().isCheckbox())) {
-                    editDueDate(task.getResults().get(i).getId(), time.plusMinutes(5).toString() + "-04:00");
+                try {
+                    LocalDateTime time = LocalDateTime.parse(startTime.replace("-04:00", ""));
+                    if (LocalDateTime.now().compareTo(time) > 0 && (!task.getResults().get(i).getProperties().getReceived().isCheckbox() && !task.getResults().get(i).getProperties().getCompleted().isCheckbox())) {
+                        editDueDate(task.getResults().get(i).getId(), time.plusMinutes(5).toString() + "-04:00");
 
-                    handleEmbed(new Reminder(task.getResults().get(i).getProperties().getName().getTitle().get(0).getPlainText(), time),
-                            task.getResults().get(i).getId());
-
+                        handleEmbed(new Reminder(task.getResults().get(i).getProperties().getName().getTitle().get(0).getPlainText(), time),
+                                task.getResults().get(i).getId());
+                    }
+                } catch (DateTimeParseException e) {
                 }
 
             }
@@ -92,6 +98,7 @@ public class Messenger {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     public void markAsReceived(String id) {
@@ -104,12 +111,14 @@ public class Messenger {
                 "}");
 
         try {
-            HttpResponse response = httpclient.execute(patch);
+            CloseableHttpResponse response = httpclient.execute(patch);
             System.out.println(response.getStatusLine());
+            response.close();
 
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
     public void markAsCompleted(String id) {
@@ -122,8 +131,9 @@ public class Messenger {
                 "}");
 
         try {
-            HttpResponse response = httpclient.execute(patch);
+            CloseableHttpResponse response = httpclient.execute(patch);
             System.out.println(response.getStatusLine());
+            response.close();
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -142,10 +152,10 @@ public class Messenger {
             message.addReaction(EmojiParser.parseToUnicode(":white_check_mark:"));
             message.addReactionAddListener(event -> {
                 if (event.getEmoji().equalsEmoji("\uD83D\uDC4D") && event.getUserId() != 779760357778391110L) {
-                    markAsReceived(checkboxID);
+                    exec.submit(() -> markAsReceived(checkboxID));
                 }
                 if (event.getEmoji().equalsEmoji(EmojiParser.parseToUnicode(":white_check_mark:")) && event.getUserId() != 779760357778391110L) {
-                    markAsCompleted(checkboxID);
+                    exec.submit(() -> markAsCompleted(checkboxID));
                 }
             });
         }));
