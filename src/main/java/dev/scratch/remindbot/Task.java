@@ -44,11 +44,11 @@ public class Task {
         private TextField name;
         @SerializedName("Class")
         private SingleSelect className;
-        @SerializedName("Due_Date")
-        private Date dueDate;
+        @SerializedName("Remind_Date")
+        private Date remindDate;
 
-        public Date getDueDate() {
-            return dueDate;
+        public Date getRemindDate() {
+            return remindDate;
         }
 
         public TextField getName() {

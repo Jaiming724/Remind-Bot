@@ -3,7 +3,6 @@ package dev.scratch.remindbot;
 import com.google.gson.Gson;
 import com.vdurmont.emoji.EmojiParser;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpPatch;
@@ -22,6 +21,8 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -49,8 +50,9 @@ public class Messenger {
 
     }
 
-    public void getReminders() throws IOException {
+    public Task getReminders() throws IOException {
         CloseableHttpResponse response = null;
+        Task task = null;
         try {
             response = httpclient.execute(httpPost);
         } catch (IOException e) {
@@ -64,13 +66,13 @@ public class Messenger {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            Task task = gson.fromJson(result, Task.class);
+            task = gson.fromJson(result, Task.class);
             for (int i = 0; i < task.getResults().size(); i++) {
-                String startTime = task.getResults().get(i).getProperties().getDueDate().getDate().getStart();
+                String startTime = task.getResults().get(i).getProperties().getRemindDate().getDate().getStart();
                 try {
                     LocalDateTime time = LocalDateTime.parse(startTime.replace("-04:00", ""));
                     if (LocalDateTime.now().compareTo(time) > 0 && (!task.getResults().get(i).getProperties().getReceived().isCheckbox() && !task.getResults().get(i).getProperties().getCompleted().isCheckbox())) {
-                        editDueDate(task.getResults().get(i).getId(), time.plusMinutes(5).toString() + "-04:00");
+                        editDueDate(task.getResults().get(i).getId(), LocalDateTime.now().plusMinutes(5).toString() + "-04:00");
 
                         handleEmbed(new Reminder(task.getResults().get(i).getProperties().getName().getTitle().get(0).getPlainText(), time),
                                 task.getResults().get(i).getId());
@@ -81,6 +83,7 @@ public class Messenger {
             }
         }
         response.close();
+        return task;
     }
 
     public void editDueDate(String id, String time) {
@@ -88,7 +91,7 @@ public class Messenger {
         patch.addHeader("Authorization", "Bearer secret_bUuKktfitbXYk3aObA7WT72sIkAXICBMznTqsGoj5Dn");
         patch.addHeader("Notion-Version", "2021-05-13");
         patch.addHeader("Content-Type", "application/json");
-        HttpEntity stringEntity = new StringEntity("{\n" + "\"properties\": {\n" + "\"Due_Date\":{     \"date\": {\n" + " \"start\":" + '"' + time + "\"," + "\n" + "\t\"end\":null\n" + "}}\n" + "}\n" + "}", ContentType.APPLICATION_JSON);
+        HttpEntity stringEntity = new StringEntity("{\n" + "\"properties\": {\n" + "\"Remind_Date\":{     \"date\": {\n" + " \"start\":" + '"' + time + "\"," + "\n" + "\t\"end\":null\n" + "}}\n" + "}\n" + "}", ContentType.APPLICATION_JSON);
         patch.setEntity(stringEntity);
         try {
             CloseableHttpResponse res = httpclient.execute(patch);
@@ -174,5 +177,46 @@ public class Messenger {
         request.addHeader("Content-Type", "application/json");
         request.setEntity(new StringEntity(jsonData, ContentType.APPLICATION_JSON));
         return request;
+    }
+
+    public void sendSummary() {
+        System.out.println("send summary is running");
+        Task task = null;
+        try {
+            task = getReminders();
+        } catch (IOException | NullPointerException e) {
+            e.printStackTrace();
+        }
+        if (task == null) {
+            System.out.println("task was null");
+            return;
+        }
+        List<Reminder> reminders = new ArrayList<>();
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a");
+
+        for (int i = 0; i < task.getResults().size(); i++) {
+            String startTime;
+            try {
+                startTime = task.getResults().get(i).getProperties().getRemindDate().getDate().getStart();
+            } catch (NullPointerException nullPointerException) {
+                continue;
+            }
+            LocalDateTime time = LocalDateTime.parse(startTime.replace("-04:00", ""));
+            if (dateFormatter.format(LocalDateTime.now()).equals(dateFormatter.format(time))) {
+                reminders.add(new Reminder(task.getResults().get(i).getProperties().getName().getTitle().get(0).getPlainText(), time));
+            }
+
+        }
+        EmbedBuilder embed = new EmbedBuilder()
+                .setTitle(dateFormatter.format(LocalDateTime.now()) + " Summary")
+                .setColor(Color.BLUE);
+
+        for (Reminder reminder : reminders) {
+            embed.addField(timeFormatter.format(reminder.getLocalDateTime()), reminder.getContent());
+        }
+        api.getChannelById(794751364773314590L).flatMap(Channel::asServerTextChannel).ifPresent(serverTextChannel -> serverTextChannel.sendMessage(embed));
+
+
     }
 }
