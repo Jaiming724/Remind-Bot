@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class Messenger {
     private CloseableHttpClient httpclient = HttpClients.createDefault();
@@ -59,6 +60,8 @@ public class Messenger {
             e.printStackTrace();
         }
         HttpEntity entity = response.getEntity();
+        System.out.println(response.getStatusLine());
+
         if (entity != null && response.getStatusLine().getStatusCode() == 200) {
             String result = null;
             try {
@@ -71,6 +74,7 @@ public class Messenger {
                 String startTime = task.getResults().get(i).getProperties().getRemindDate().getDate().getStart();
                 try {
                     LocalDateTime time = LocalDateTime.parse(startTime.replace("-04:00", ""));
+
                     if (LocalDateTime.now().compareTo(time) > 0 && (!task.getResults().get(i).getProperties().getReceived().isCheckbox() && !task.getResults().get(i).getProperties().getCompleted().isCheckbox())) {
                         editDueDate(task.getResults().get(i).getId(), LocalDateTime.now().plusMinutes(5).toString() + "-04:00");
 
@@ -89,7 +93,7 @@ public class Messenger {
     public void editDueDate(String id, String time) {
         HttpPatch patch = new HttpPatch("https://api.notion.com/v1/pages/" + id);
         patch.addHeader("Authorization", "Bearer secret_bUuKktfitbXYk3aObA7WT72sIkAXICBMznTqsGoj5Dn");
-        patch.addHeader("Notion-Version", "2021-05-13");
+        patch.addHeader("Notion-Version", "2021-08-16");
         patch.addHeader("Content-Type", "application/json");
         HttpEntity stringEntity = new StringEntity("{\n" + "\"properties\": {\n" + "\"Remind_Date\":{     \"date\": {\n" + " \"start\":" + '"' + time + "\"," + "\n" + "\t\"end\":null\n" + "}}\n" + "}\n" + "}", ContentType.APPLICATION_JSON);
         patch.setEntity(stringEntity);
@@ -160,7 +164,7 @@ public class Messenger {
                 if (event.getEmoji().equalsEmoji(EmojiParser.parseToUnicode(":white_check_mark:")) && event.getUserId() != 779760357778391110L) {
                     exec.submit(() -> markAsCompleted(checkboxID));
                 }
-            });
+            }).removeAfter(5, TimeUnit.MINUTES);
         }));
 
     }
