@@ -12,21 +12,25 @@ public class Bot {
 
 
         DiscordApi api = new DiscordApiBuilder()
-                .setToken("Nzc5NzYwMzU3Nzc4MzkxMTEw.X7lObA.psWZhO3z75jnohljrgRPXw6BrNs").setAllIntents()
+                .setToken(System.getenv("token")).setAllIntents()
                 .login().join();
-        Messenger messenger = new Messenger(api);
+
+        ReminderChecker reminderChecker = new ReminderChecker(api);
+        api.addMessageCreateListener(event -> {
+            if (event.getMessageContent().equalsIgnoreCase("!summary")) {
+                reminderChecker.sendSummary();
+            }
+        });
         ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
         exec.scheduleAtFixedRate(() -> {
             try {
-                messenger.getReminders();
+                reminderChecker.checkReminders();
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }, 0, 1, TimeUnit.SECONDS);
 
-
     }
-
 
 
 }
