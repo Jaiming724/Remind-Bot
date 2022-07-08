@@ -2,22 +2,16 @@ import dev.scratch.remindbot.NotionHelper
 import dev.scratch.remindbot.Task
 import notion.api.v1.NotionClient
 import notion.api.v1.http.OkHttp4Client
-import notion.api.v1.logging.StdoutLogger
-import notion.api.v1.model.blocks.Block
-import notion.api.v1.model.blocks.BlockType
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.logging.Level
-import java.util.logging.Logger
-import kotlin.math.log
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class NotionTest {
     @Test
-    fun notionTest() {
+    fun taskTests() {
         val client = NotionClient(System.getenv("notion"));
         client.httpClient = OkHttp4Client()
 
@@ -28,6 +22,12 @@ class NotionTest {
         task.id = notionTest.addTask(task)
         var tasks = notionTest.getTasks()
         assertTrue(task in tasks)
+        task.id = notionTest.markAsCompleted(task.id)
+        tasks = notionTest.getTasks()
+        assertFalse(task in tasks)
+        task.id = notionTest.markAsNotStarted(task.id)
+        tasks = notionTest.getTasks()
+
         val removeTask = tasks.filter { it.name == "Testing Task" }
 
         notionTest.removeTask(removeTask[0].id)
@@ -35,6 +35,5 @@ class NotionTest {
 
         assertFalse(task in tasks)
     }
-
 
 }
