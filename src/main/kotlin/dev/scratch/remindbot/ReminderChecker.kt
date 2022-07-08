@@ -1,6 +1,8 @@
 package dev.scratch.remindbot
 
 import com.vdurmont.emoji.EmojiParser
+import notion.api.v1.NotionClient
+import notion.api.v1.http.OkHttp4Client
 import org.javacord.api.DiscordApi
 import org.javacord.api.entity.channel.Channel
 import org.javacord.api.entity.channel.ServerTextChannel
@@ -14,8 +16,9 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-class ReminderChecker(private val api: DiscordApi) {
-    private val notionHelper = NotionHelper()
+class ReminderChecker(private val api: DiscordApi, client: NotionClient) {
+
+    private val notionHelper = NotionHelper(client);
     private val exec = Executors.newScheduledThreadPool(5)
 
     fun checkReminders() {

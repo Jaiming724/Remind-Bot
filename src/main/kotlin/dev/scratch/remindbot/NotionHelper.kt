@@ -15,12 +15,10 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
-class NotionHelper() {
-    private val client = NotionClient(System.getenv("notion"));
+class NotionHelper constructor(private val client: NotionClient) {
     private val database: DatabaseSearchResult
 
     init {
-        client.httpClient = OkHttp4Client()
         database = client.search(
             query = "Tasks",
             filter = SearchRequest.SearchFilter("database", property = "object")
@@ -102,7 +100,8 @@ class NotionHelper() {
             )
         ).id
     }
-    fun markAsCompleted(id:String):String{
+
+    fun markAsCompleted(id: String): String {
         return client.updatePage(
             pageId = id,
             properties = mapOf(
@@ -110,6 +109,7 @@ class NotionHelper() {
             )
         ).id
     }
+
     fun removeTask(id: String) {
         client.deleteBlock(id)
     }

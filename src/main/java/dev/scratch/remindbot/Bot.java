@@ -1,5 +1,7 @@
 package dev.scratch.remindbot;
 
+import notion.api.v1.NotionClient;
+import notion.api.v1.http.OkHttp4Client;
 import org.javacord.api.DiscordApi;
 import org.javacord.api.DiscordApiBuilder;
 
@@ -14,8 +16,9 @@ public class Bot {
         DiscordApi api = new DiscordApiBuilder()
                 .setToken(System.getenv("token")).setAllIntents()
                 .login().join();
-
-        ReminderChecker reminderChecker = new ReminderChecker(api);
+        NotionClient client = new NotionClient(System.getenv("notion"));
+        client.setHttpClient(new OkHttp4Client());
+        ReminderChecker reminderChecker = new ReminderChecker(api,client);
         api.addMessageCreateListener(event -> {
             if (event.getMessageContent().equalsIgnoreCase("!summary")) {
                 reminderChecker.sendSummary();
