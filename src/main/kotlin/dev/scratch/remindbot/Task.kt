@@ -1,23 +1,33 @@
 package dev.scratch.remindbot
 
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneOffset
+import dev.scratch.remindbot.util.NotionTime
 
 data class Task(
     val name: String,
-    val remindDate: String,
+    val remindDate: NotionTime,
     val dueDate: String,
     val completed: Boolean,
     val received: Boolean,
     var id: String = "UNKNOWN"
 
+
 ) {
-    fun getLocalDateTime(): LocalDateTime? {
-        val timeOffset: String = (ZoneOffset.systemDefault().rules.getOffset(Instant.now()).toString())
-        if (timeOffset !in remindDate) {
-            return null
-        }
-        return LocalDateTime.parse(this.remindDate.replace(timeOffset, ""))
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Task
+
+        return id == other.id
+    }
+
+    override fun hashCode(): Int {
+        var result = name.hashCode()
+        result = 31 * result + remindDate.hashCode()
+        result = 31 * result + dueDate.hashCode()
+        result = 31 * result + completed.hashCode()
+        result = 31 * result + received.hashCode()
+        result = 31 * result + id.hashCode()
+        return result
     }
 }

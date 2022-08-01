@@ -24,7 +24,7 @@ class ReminderChecker(private val api: DiscordApi, client: NotionClient) {
     fun checkReminders() {
         val tasks = notionHelper.getTasks()
         for (task in tasks) {
-            if (task.getLocalDateTime() != null && LocalDateTime.now() > task.getLocalDateTime() && (!task.received && task.dueDate != "UNKNOWN")) {
+            if (task.remindDate.getLocalDateTime() != null && LocalDateTime.now() > task.remindDate.getLocalDateTime() && (!task.received && task.dueDate != "UNKNOWN")) {
                 println("Sending ${task.name}")
                 sendEmbed(task)
                 notionHelper.updateTaskRemindDate(task.id)
@@ -38,8 +38,8 @@ class ReminderChecker(private val api: DiscordApi, client: NotionClient) {
             .setTitle(LocalDate.now().toString())
 
         for (task in tasks) {
-            if (LocalDate.now() == task.getLocalDateTime()?.toLocalDate()) {
-                embed.addField("Time", task.getLocalDateTime()?.format(DateTimeFormatter.ofPattern("hh:mm a")))
+            if (LocalDate.now() == task.remindDate.getLocalDateTime()?.toLocalDate()) {
+                embed.addField("Time", task.remindDate.getLocalDateTime()?.format(DateTimeFormatter.ofPattern("hh:mm a")))
                     .addField("Description", task.name)
             }
         }
@@ -55,7 +55,10 @@ class ReminderChecker(private val api: DiscordApi, client: NotionClient) {
     private fun sendEmbed(task: Task) {
         val embed = EmbedBuilder()
             .setTitle("Reminder")
-            .addField("Time", task.getLocalDateTime()?.format(DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a")))
+            .addField(
+                "Time",
+                task.remindDate.getLocalDateTime()?.format(DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a"))
+            )
             .addField("Description", task.name)
             .setColor(Color.BLUE)
         api.getChannelById(794751364773314590L).flatMap { obj: Channel -> obj.asServerTextChannel() }

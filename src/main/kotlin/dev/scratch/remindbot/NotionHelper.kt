@@ -1,5 +1,6 @@
 package dev.scratch.remindbot
 
+import dev.scratch.remindbot.util.NotionTime
 import notion.api.v1.NotionClient
 import notion.api.v1.http.OkHttp4Client
 import notion.api.v1.model.databases.DatabaseProperty
@@ -63,7 +64,7 @@ class NotionHelper constructor(private val client: NotionClient) {
                 if (i.name == "On-Going")
                     received = true
             }
-            val task = Task(name, remindTime, dueDate, completed, received, result.id)
+            val task = Task(name, NotionTime(remindTime), dueDate, completed, received, result.id)
             list.add(task)
         }
         return list
@@ -90,7 +91,7 @@ class NotionHelper constructor(private val client: NotionClient) {
                     )
                 ),
                 "Status" to PageProperty(multiSelect = tagOptions),
-                "Remind_Date" to PageProperty(date = PageProperty.Date(task.remindDate)),
+                "Remind_Date" to PageProperty(date = PageProperty.Date(task.remindDate.time)),
                 "Due Date" to PageProperty(date = PageProperty.Date(task.dueDate)),
             )
         )
@@ -130,6 +131,7 @@ class NotionHelper constructor(private val client: NotionClient) {
             )
         ).id
     }
+
     fun markAsNotStarted(id: String): String {
         val tagOptions = listOf(DatabaseProperty.MultiSelect.Option(name = "Not-Started"))
         return client.updatePage(
