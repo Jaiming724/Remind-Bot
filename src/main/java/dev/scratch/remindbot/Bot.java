@@ -18,7 +18,7 @@ public class Bot {
                 .login().join();
         NotionClient client = new NotionClient(System.getenv("notion"));
         client.setHttpClient(new OkHttp4Client());
-        ReminderChecker reminderChecker = new ReminderChecker(api,client);
+        ReminderChecker reminderChecker = new ReminderChecker(api, client);
         api.addMessageCreateListener(event -> {
             if (event.getMessageContent().equalsIgnoreCase("!summary")) {
                 reminderChecker.sendSummary();
@@ -30,6 +30,11 @@ public class Bot {
                 reminderChecker.checkReminders();
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         }, 0, 1, TimeUnit.SECONDS);
 
