@@ -35,5 +35,5 @@ class NotionTest {
 
         assertFalse(task in tasks)
     }
-    
+
 }

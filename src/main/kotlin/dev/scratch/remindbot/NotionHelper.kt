@@ -2,15 +2,12 @@ package dev.scratch.remindbot
 
 import dev.scratch.remindbot.util.NotionTime
 import notion.api.v1.NotionClient
-import notion.api.v1.http.OkHttp4Client
 import notion.api.v1.model.databases.DatabaseProperty
 import notion.api.v1.model.databases.query.filter.PropertyFilter
-import notion.api.v1.model.databases.query.filter.condition.CheckboxFilter
-import notion.api.v1.model.databases.query.filter.condition.MultiSelectFilter
+import notion.api.v1.model.databases.query.filter.condition.SelectFilter
 import notion.api.v1.model.databases.query.sort.QuerySort
 import notion.api.v1.model.databases.query.sort.QuerySortDirection
 import notion.api.v1.model.databases.query.sort.QuerySortTimestamp
-import notion.api.v1.model.pages.Page
 import notion.api.v1.model.pages.PageParent
 import notion.api.v1.model.pages.PageProperty
 import notion.api.v1.model.search.DatabaseSearchResult
@@ -36,7 +33,7 @@ class NotionHelper constructor(private val client: NotionClient) {
                 databaseId = database.id,
                 filter = PropertyFilter(
                     property = "Status",
-                    multiSelect = MultiSelectFilter(doesNotContain = "Completed")
+                    select = SelectFilter(doesNotEqual = "Completed")
                 ),
                 sorts =
                 listOf(
@@ -58,12 +55,12 @@ class NotionHelper constructor(private val client: NotionClient) {
 
             var completed = false
             var received = false
-            for (i in map["Status"]?.multiSelect!!) {
-                if (i.name == "Completed")
-                    completed = true
-                if (i.name == "On-Going")
-                    received = true
-            }
+            val i = map["Status"]?.select!!
+            if (i.name == "Completed")
+                completed = true
+            if (i.name == "On-Going")
+                received = true
+
             val task = Task(name, NotionTime(remindTime), dueDate, completed, received, result.id)
             list.add(task)
         }
@@ -71,12 +68,12 @@ class NotionHelper constructor(private val client: NotionClient) {
     }
 
     fun addTask(task: Task): String {
-        val tagOptions = mutableListOf<DatabaseProperty.MultiSelect.Option>()
+        var status: DatabaseProperty.Select.Option? = null
 
         if (task.completed) {
-            tagOptions.add(DatabaseProperty.MultiSelect.Option(name = "Completed"))
+            status = (DatabaseProperty.Select.Option(name = "Completed"))
         } else if (task.received) {
-            tagOptions.add(DatabaseProperty.MultiSelect.Option(name = "On-Going"))
+            status = (DatabaseProperty.Select.Option(name = "On-Going"))
         }
         val newPage = client.createPage(
             parent = PageParent.database(database.id),
@@ -90,7 +87,7 @@ class NotionHelper constructor(private val client: NotionClient) {
                         )
                     )
                 ),
-                "Status" to PageProperty(multiSelect = tagOptions),
+                "Status" to PageProperty(select = status),
                 "Remind_Date" to PageProperty(date = PageProperty.Date(task.remindDate.time)),
                 "Due Date" to PageProperty(date = PageProperty.Date(task.dueDate)),
             )
@@ -99,7 +96,7 @@ class NotionHelper constructor(private val client: NotionClient) {
     }
 
     fun updateTaskRemindDate(id: String): String {
-        val timeOffset: String = (ZoneOffset.systemDefault().getRules().getOffset(Instant.now()).toString())
+        val timeOffset: String = (ZoneOffset.systemDefault().rules.getOffset(Instant.now()).toString())
         return client.updatePage(
             pageId = id,
             properties = mapOf(
@@ -113,31 +110,31 @@ class NotionHelper constructor(private val client: NotionClient) {
     }
 
     fun markAsReceived(id: String): String {
-        val tagOptions = listOf(DatabaseProperty.MultiSelect.Option(name = "On-Going"))
+        val status = (DatabaseProperty.Select.Option(name = "On-Going"))
         return client.updatePage(
             pageId = id,
             properties = mapOf(
-                "Status" to PageProperty(multiSelect = tagOptions),
+                "Status" to PageProperty(select = status),
             )
         ).id
     }
 
     fun markAsCompleted(id: String): String {
-        val tagOptions = listOf(DatabaseProperty.MultiSelect.Option(name = "Completed"))
+        val status = (DatabaseProperty.Select.Option(name = "Completed"))
         return client.updatePage(
             pageId = id,
             properties = mapOf(
-                "Status" to PageProperty(multiSelect = tagOptions),
+                "Status" to PageProperty(select = status),
             )
         ).id
     }
 
     fun markAsNotStarted(id: String): String {
-        val tagOptions = listOf(DatabaseProperty.MultiSelect.Option(name = "Not-Started"))
+        val status = (DatabaseProperty.Select.Option(name = "Not-Started"))
         return client.updatePage(
             pageId = id,
             properties = mapOf(
-                "Status" to PageProperty(multiSelect = tagOptions),
+                "Status" to PageProperty(select = status),
             )
         ).id
     }
