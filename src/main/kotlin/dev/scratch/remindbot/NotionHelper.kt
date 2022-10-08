@@ -47,6 +47,7 @@ class NotionHelper constructor(private val client: NotionClient) {
         val list = mutableListOf<Task>()
 
         for (result in queryResult.results) {
+
             val map = result.properties
 
             val name = map["Name"]?.title?.get(0)?.plainText ?: "UNKNOWN"
@@ -58,9 +59,10 @@ class NotionHelper constructor(private val client: NotionClient) {
             val i = map["Status"]?.select!!
             if (i.name == "Completed")
                 completed = true
-            if (i.name == "On-Going")
+            else if (i.name == "On-Going")
                 received = true
-
+            else
+                continue
             val task = Task(name, NotionTime(remindTime), dueDate, completed, received, result.id)
             list.add(task)
         }
