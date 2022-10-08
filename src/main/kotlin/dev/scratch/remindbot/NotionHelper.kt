@@ -57,12 +57,12 @@ class NotionHelper constructor(private val client: NotionClient) {
             var completed = false
             var received = false
             val i = map["Status"]?.select!!
-            if (i.name == "Completed")
+            if (i.name == "Backlog")
+                continue
+            else if (i.name == "Completed")
                 completed = true
             else if (i.name == "On-Going")
                 received = true
-            else
-                continue
             val task = Task(name, NotionTime(remindTime), dueDate, completed, received, result.id)
             list.add(task)
         }
