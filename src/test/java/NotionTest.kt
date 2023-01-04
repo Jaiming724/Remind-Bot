@@ -6,6 +6,7 @@ import notion.api.v1.http.OkHttp4Client
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -16,9 +17,9 @@ class NotionTest {
         val client = NotionClient(System.getenv("notion"));
         client.httpClient = OkHttp4Client()
         val timeOffset: String = (ZoneOffset.systemDefault().rules.getOffset(Instant.now()).toString())
-        assertEquals(timeOffset, "-04:00")
+        assertEquals(timeOffset, "-05:00")
         val notionTest = NotionHelper(client)
-        val task = Task("Testing Task", NotionTime("2022-06-09T20:34:00.000-04:00"), "2022-06-09", false, true)
+        val task = Task("Testing Task", NotionTime("2022-06-09T20:34:00.000-05:00"), "2022-06-09", false, true)
         task.id = notionTest.addTask(task)
         var tasks = notionTest.getTasks()
         assertTrue(task in tasks)
@@ -34,6 +35,7 @@ class NotionTest {
         tasks = notionTest.getTasks()
 
         assertFalse(task in tasks)
+        println(LocalDate.now().toString())
     }
 
 }
