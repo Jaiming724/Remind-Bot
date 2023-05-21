@@ -8,10 +8,18 @@ import org.javacord.api.DiscordApiBuilder;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Bot {
     public static void main(String[] args) {
 
+        Logger libraryLogger = Logger.getLogger("com.github.seratch");
+
+        // Set the logging level to OFF
+        libraryLogger.setLevel(Level.OFF);
 
         DiscordApi api = new DiscordApiBuilder()
                 .setToken(System.getenv("token")).setAllIntents()
@@ -32,11 +40,11 @@ public class Bot {
                 e.printStackTrace();
             }
             try {
-                Thread.sleep(10000);
+                Thread.sleep(1);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-        }, 0, 1, TimeUnit.SECONDS);
+        }, 0, 1, TimeUnit.MICROSECONDS);
 
     }
 

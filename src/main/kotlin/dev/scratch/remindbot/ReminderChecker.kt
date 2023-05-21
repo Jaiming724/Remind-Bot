@@ -12,6 +12,7 @@ import org.javacord.api.event.message.reaction.ReactionAddEvent
 import java.awt.Color
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -24,8 +25,7 @@ class ReminderChecker(private val api: DiscordApi, client: NotionClient) {
     fun checkReminders() {
         val tasks = notionHelper.getTasks()
         for (task in tasks) {
-            if (task.remindDate.getLocalDateTime() != null && LocalDateTime.now() > task.remindDate.getLocalDateTime() && (!task.received && task.dueDate != "UNKNOWN")) {
-                println("Sending ${task.name}")
+            if (task.remindDate.getLocalDateTime() != null && LocalDateTime.now(ZoneOffset.UTC) > task.remindDate.getLocalDateTime() && (!task.received && task.dueDate != "UNKNOWN")) {
                 sendEmbed(task)
                 notionHelper.updateTaskRemindDate(task.id)
             }
@@ -39,7 +39,10 @@ class ReminderChecker(private val api: DiscordApi, client: NotionClient) {
 
         for (task in tasks) {
             if (LocalDate.now() == task.remindDate.getLocalDateTime()?.toLocalDate()) {
-                embed.addField("Time", task.remindDate.getLocalDateTime()?.format(DateTimeFormatter.ofPattern("hh:mm a")))
+                embed.addField(
+                    "Time",
+                    task.remindDate.getLocalDateTime()?.format(DateTimeFormatter.ofPattern("hh:mm a"))
+                )
                     .addField("Description", task.name)
             }
         }

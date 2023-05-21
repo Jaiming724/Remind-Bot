@@ -15,9 +15,13 @@ import notion.api.v1.request.search.SearchRequest
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
 
 class NotionHelper constructor(private val client: NotionClient) {
     private val database: DatabaseSearchResult
+
 
     init {
         database = client.search(
@@ -51,6 +55,8 @@ class NotionHelper constructor(private val client: NotionClient) {
             val map = result.properties
 
             val name = map["Name"]?.title?.get(0)?.plainText ?: "UNKNOWN"
+
+
             val remindTime = map["Remind_Date"]?.date?.start ?: "UNKNOWN"
             val dueDate = map["Due Date"]?.date?.start ?: "UNKNOWN"
 
@@ -63,11 +69,14 @@ class NotionHelper constructor(private val client: NotionClient) {
                 completed = true
             else if (i.name == "On-Going")
                 received = true
+
+
             val task = Task(name, NotionTime(remindTime), dueDate, completed, received, result.id)
             list.add(task)
         }
         return list
     }
+
 
     fun addTask(task: Task): String {
         var status: DatabaseProperty.Select.Option? = null
