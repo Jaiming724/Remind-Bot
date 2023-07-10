@@ -13,6 +13,7 @@ import notion.api.v1.model.pages.PageProperty
 import notion.api.v1.model.search.DatabaseSearchResult
 import notion.api.v1.request.search.SearchRequest
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -29,6 +30,55 @@ class NotionHelper constructor(private val client: NotionClient) {
             filter = SearchRequest.SearchFilter("database", property = "object")
         ).results.find { it.asDatabase().properties.containsKey("Name") }?.asDatabase()
             ?: throw IllegalStateException("Could not find database")
+    }
+
+    fun getTodayTasks(): MutableList<Task> {
+        val queryResult =
+            client.queryDatabase(
+                databaseId = database.id,
+                filter = PropertyFilter(
+                    property = "Status",
+                    select = SelectFilter(doesNotEqual = "Completed")
+                ),
+                sorts =
+                listOf(
+                    QuerySort(property = "title"),
+                    QuerySort(
+                        timestamp = QuerySortTimestamp.LastEditedTime,
+                        direction = QuerySortDirection.Descending
+                    )
+                )
+            )
+        val list = mutableListOf<Task>()
+
+        for (result in queryResult.results) {
+
+            val map = result.properties
+
+            val name = map["Name"]?.title?.get(0)?.plainText ?: "UNKNOWN"
+
+
+            val remindTime = map["Remind_Date"]?.date?.start ?: "UNKNOWN"
+            val dueDate = map["Due Date"]?.date?.start ?: "UNKNOWN"
+
+            var completed = false
+            var received = false
+            val i = map["Status"]?.select!!
+            if (i.name == "Backlog")
+                continue
+            else if (i.name == "Completed")
+                completed = true
+            else if (i.name == "On-Going")
+                received = true
+            val t = NotionTime(remindTime);
+            if (t.getLocalDateTime()?.toLocalDate() == LocalDate.now()) {
+                val task = Task(name, NotionTime(remindTime), dueDate, completed, received, result.id)
+                list.add(task)
+            }
+
+
+        }
+        return list
     }
 
     fun getTasks(): MutableList<Task> {
