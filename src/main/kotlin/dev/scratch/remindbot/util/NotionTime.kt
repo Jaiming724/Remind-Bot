@@ -6,6 +6,11 @@ import java.time.format.DateTimeParseException
 
 class NotionTime(val time: String) {
     private val dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+
+    init {
+
+    }
+
     fun getLocalDateTime(): LocalDateTime? {
         if (!hasTimeComponent(time)) {
             return null

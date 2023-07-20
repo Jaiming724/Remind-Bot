@@ -177,7 +177,7 @@
         <dependency>
             <groupId>com.github.Jaiming724</groupId>
             <artifactId>scheduler</artifactId>
-            <version>bd95dc3e3a</version>
+            <version>2b652876bc</version>
         </dependency>
     </dependencies>
 </project>

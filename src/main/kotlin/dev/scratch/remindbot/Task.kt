@@ -1,12 +1,13 @@
 package dev.scratch.remindbot
 
 import dev.scratch.remindbot.util.NotionTime
+import dev.scratch.scheduler.util.DateTimeOptional
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 
 data class Task(
     val name: String,
-    val remindDate: NotionTime,
+    val remindDate: DateTimeOptional,
     val dueDate: String,
     val completed: Boolean,
     val received: Boolean,

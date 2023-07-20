@@ -29,7 +29,7 @@ public class Bot {
         ReminderChecker reminderChecker = new ReminderChecker(api, client);
         api.addMessageCreateListener(event -> {
             if (event.getMessageContent().equalsIgnoreCase("!summary")) {
-                reminderChecker.sendSummary();
+               // reminderChecker.sendSummary();
             }
         });
         ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
@@ -39,12 +39,8 @@ public class Bot {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }, 0, 1, TimeUnit.MICROSECONDS);
+
+        }, 0, 1, TimeUnit.SECONDS);
 
     }
 

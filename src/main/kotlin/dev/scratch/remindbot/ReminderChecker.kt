@@ -1,6 +1,7 @@
 package dev.scratch.remindbot
 
 import com.vdurmont.emoji.EmojiParser
+import dev.scratch.scheduler.util.SimpleDateTime
 import notion.api.v1.NotionClient
 import notion.api.v1.http.OkHttp4Client
 import org.javacord.api.DiscordApi
@@ -27,48 +28,43 @@ class ReminderChecker(private val api: DiscordApi, client: NotionClient) {
     fun checkReminders() {
         val tasks = notionHelper.getTasks()
         for (task in tasks) {
-            if (task.remindDate.getLocalDateTime() != null && ZonedDateTime.now(ZoneOffset.UTC)
+            println("Checking ${task.name}")
+            if (task.remindDate is SimpleDateTime && ZonedDateTime.now(ZoneOffset.UTC)
                     .withZoneSameInstant(ZoneId.of("America/New_York"))
-                    .toLocalDateTime() > task.remindDate.getLocalDateTime() && (!task.received && task.dueDate != "UNKNOWN")
+                    .toLocalDateTime() > task.remindDate.dateTime.toLocalDateTime() && (!task.received && task.dueDate != "UNKNOWN")
             ) {
+                println("sending alert for ${task.name}")
                 sendEmbed(task)
                 notionHelper.updateTaskRemindDate(task.id)
             }
         }
     }
 
-    fun sendSummary() {
-        val tasks = notionHelper.getTasks()
-        val embed = EmbedBuilder()
-            .setTitle(LocalDate.now().toString())
-
-        for (task in tasks) {
-            if (LocalDate.now() == task.remindDate.getLocalDateTime()?.toLocalDate()) {
-                embed.addField(
-                    "Time",
-                    task.remindDate.getLocalDateTime()?.format(DateTimeFormatter.ofPattern("hh:mm a"))
-                )
-                    .addField("Description", task.name)
-            }
-        }
-        api.getChannelById(794751364773314590L).flatMap { obj: Channel -> obj.asServerTextChannel() }
-            .ifPresent { serverTextChannel: ServerTextChannel ->
-                serverTextChannel.sendMessage(
-                    "<@388155532130779156>"
-                )
-                serverTextChannel.sendMessage(embed)
-            }
-    }
+//    fun sendSummary() {
+//        val tasks = notionHelper.getTasks()
+//        val embed = EmbedBuilder().setTitle(LocalDate.now().toString())
+//
+//        for (task in tasks) {
+//            if (LocalDate.now() == task.remindDate.getLocalDateTime()?.toLocalDate()) {
+//                embed.addField(
+//                    "Time", task.remindDate.getLocalDateTime()?.format(DateTimeFormatter.ofPattern("hh:mm a"))
+//                ).addField("Description", task.name)
+//            }
+//        }
+//        api.getChannelById(794751364773314590L).flatMap { obj: Channel -> obj.asServerTextChannel() }
+//            .ifPresent { serverTextChannel: ServerTextChannel ->
+//                serverTextChannel.sendMessage(
+//                    "<@388155532130779156>"
+//                )
+//                serverTextChannel.sendMessage(embed)
+//            }
+//    }
 
     private fun sendEmbed(task: Task) {
-        val embed = EmbedBuilder()
-            .setTitle("Reminder")
-            .addField(
-                "Time",
-                task.remindDate.getLocalDateTime()?.format(DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a"))
-            )
-            .addField("Description", task.name)
-            .setColor(Color.BLUE)
+        val time = task.remindDate as SimpleDateTime
+        val embed = EmbedBuilder().setTitle("Reminder").addField(
+            "Time", time.dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a"))
+        ).addField("Description", task.name).setColor(Color.BLUE)
         api.getChannelById(794751364773314590L).flatMap { obj: Channel -> obj.asServerTextChannel() }
             .ifPresent { serverTextChannel: ServerTextChannel ->
                 serverTextChannel.sendMessage(
@@ -81,14 +77,10 @@ class ReminderChecker(private val api: DiscordApi, client: NotionClient) {
                     message.addReaction("\uD83D\uDC4D")
                     message.addReaction(EmojiParser.parseToUnicode(":white_check_mark:"))
                     message.addReactionAddListener { event: ReactionAddEvent ->
-                        if (event.emoji
-                                .equalsEmoji("\uD83D\uDC4D") && event.userId != 779760357778391110L
-                        ) {
+                        if (event.emoji.equalsEmoji("\uD83D\uDC4D") && event.userId != 779760357778391110L) {
                             exec.submit { notionHelper.markAsReceived(task.id) }
                         }
-                        if (event.emoji
-                                .equalsEmoji(EmojiParser.parseToUnicode(":white_check_mark:")) && event.userId != 779760357778391110L
-                        ) {
+                        if (event.emoji.equalsEmoji(EmojiParser.parseToUnicode(":white_check_mark:")) && event.userId != 779760357778391110L) {
                             exec.submit { notionHelper.markAsCompleted(task.id) }
                         }
                     }.removeAfter(5, TimeUnit.MINUTES)

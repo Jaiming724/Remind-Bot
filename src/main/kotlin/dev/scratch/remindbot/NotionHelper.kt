@@ -1,6 +1,10 @@
 package dev.scratch.remindbot
 
-import dev.scratch.remindbot.util.NotionTime
+import dev.scratch.scheduler.model.actions.HardAction
+import dev.scratch.scheduler.util.DateTimeOptional
+import dev.scratch.scheduler.util.SimpleDate
+import dev.scratch.scheduler.util.SimpleDateTime
+import dev.scratch.scheduler.util.TimeFrame
 import notion.api.v1.NotionClient
 import notion.api.v1.model.databases.DatabaseProperty
 import notion.api.v1.model.databases.query.filter.PropertyFilter
@@ -12,12 +16,9 @@ import notion.api.v1.model.pages.PageParent
 import notion.api.v1.model.pages.PageProperty
 import notion.api.v1.model.search.DatabaseSearchResult
 import notion.api.v1.request.search.SearchRequest
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneOffset
-import java.time.ZonedDateTime
+import java.time.*
 import java.time.format.DateTimeFormatter
+import java.util.*
 
 
 class NotionHelper constructor(private val client: NotionClient) {
@@ -58,7 +59,7 @@ class NotionHelper constructor(private val client: NotionClient) {
             val name = map["Name"]?.title?.get(0)?.plainText ?: "UNKNOWN"
 
 
-            val remindTime = map["Remind_Date"]?.date?.start ?: "UNKNOWN"
+            val remindTime = map["Remind_Date"]?.date?.start ?: LocalDate.now().toString()
             val dueDate = map["Due Date"]?.date?.start ?: "UNKNOWN"
 
             var completed = false
@@ -70,15 +71,67 @@ class NotionHelper constructor(private val client: NotionClient) {
                 completed = true
             else if (i.name == "On-Going")
                 received = true
-            val t = NotionTime(remindTime);
-            if (t.getLocalDateTime()?.toLocalDate() == LocalDate.now()) {
-                val task = Task(name, NotionTime(remindTime), dueDate, completed, received, result.id)
-                list.add(task)
-            }
+            val t = DateTimeOptional(remindTime)
 
+            when (t) {
+                is SimpleDateTime -> {
+                    val task = Task(name, t, dueDate, completed, received, result.id)
+                    if (t.dateTime.toLocalDate() == LocalDate.now()) {
+                        list.add(task)
+                    }
+                }
+
+                is SimpleDate -> {
+                    if (t.date == LocalDate.now()) {
+                        val task = Task(name, t, dueDate, completed, received, result.id)
+                        list.add(task)
+
+                    }
+                }
+
+                else -> {
+                    println("unknown")
+                }
+            }
 
         }
         return list
+    }
+
+    fun getClasses(semester: String): MutableList<HardAction> {
+        val courses: MutableList<HardAction> = mutableListOf()
+
+        val database = client.search(
+            query = "Classes", filter = SearchRequest.SearchFilter("database", property = "object")
+        ).results.find { it.asDatabase().properties.containsKey("Name") }?.asDatabase()
+            ?: throw IllegalStateException("Could not find database")
+        val queryResult = client.queryDatabase(
+            databaseId = database.id, filter = PropertyFilter(
+                property = "Duration", select = SelectFilter(equals = semester)
+            ), sorts = listOf(
+                QuerySort(property = "title"),
+            )
+        )
+        for (result in queryResult.results) {
+            val map = result.properties
+            val content: String? = map["Name"]?.title?.get(0)?.plainText
+            val start = LocalDateTime.parse(
+                map["Time"]?.date?.start!!,
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+            )
+            val end = LocalDateTime.parse(
+                map["Time"]?.date?.end!!,
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
+            )
+
+            val mutableList: MutableList<DayOfWeek> = mutableListOf()
+            for (i in map["Days"]?.multiSelect!!) {
+                mutableList.add(getDayOfWeek(i.name!!))
+            }
+            val timeFrame = TimeFrame(start.toLocalTime(), end.toLocalTime())
+            courses.add(HardAction(content!!, timeFrame, mutableList.toTypedArray()))
+        }
+        return courses
     }
 
     fun getTasks(): MutableList<Task> {
@@ -121,7 +174,7 @@ class NotionHelper constructor(private val client: NotionClient) {
                 received = true
 
 
-            val task = Task(name, NotionTime(remindTime), dueDate, completed, received, result.id)
+            val task = Task(name, DateTimeOptional(remindTime), dueDate, completed, received, result.id)
             list.add(task)
         }
         return list
@@ -149,7 +202,7 @@ class NotionHelper constructor(private val client: NotionClient) {
                     )
                 ),
                 "Status" to PageProperty(select = status),
-                "Remind_Date" to PageProperty(date = PageProperty.Date(task.remindDate.time)),
+                "Remind_Date" to PageProperty(date = PageProperty.Date(task.remindDate.toString())),
                 "Due Date" to PageProperty(date = PageProperty.Date(task.dueDate)),
             )
         )
@@ -202,6 +255,19 @@ class NotionHelper constructor(private val client: NotionClient) {
 
     fun removeTask(id: String) {
         client.deleteBlock(id)
+    }
+
+    private fun getDayOfWeek(day: String): DayOfWeek {
+        return when (day.lowercase(Locale.getDefault())) {
+            "monday" -> DayOfWeek.MONDAY
+            "tuesday" -> DayOfWeek.TUESDAY
+            "wednesday" -> DayOfWeek.WEDNESDAY
+            "thursday" -> DayOfWeek.THURSDAY
+            "friday" -> DayOfWeek.FRIDAY
+            "saturday" -> DayOfWeek.SATURDAY
+            "sunday" -> DayOfWeek.SUNDAY
+            else -> throw IllegalArgumentException()
+        }
     }
 
 

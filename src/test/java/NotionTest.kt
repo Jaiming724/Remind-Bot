@@ -16,24 +16,24 @@ class NotionTest {
     @Test
     fun timeTest() {
 
-        val datetimeString = "2023-05-20T21:22:00.000-04:00"
-        val datetimeString2 = "2023-05-20T20:22:00.000-06:00"
-
-        val task = Task("testing", NotionTime(datetimeString2), datetimeString, false, false, "123")
-
-        //val datetimeString2 = "2023-05-20"
-
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'[HH:mm:ss.SSSXXX]")
-        val formatter2 = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-
-        val dateTime = ZonedDateTime.parse(datetimeString, formatter)
-        val utcDateTime = dateTime.withZoneSameInstant(ZoneOffset.UTC)
-
-        //val dateTime2 = ZonedDateTime.parse(datetimeString2, formatter2)
-        println("Parsed datetime: ${utcDateTime.toLocalDateTime()}")
-        val a = LocalDateTime.now(ZoneOffset.UTC) > task.remindDate.getLocalDateTime();
-        println(a)
-        println(task.remindDate.getLocalDateTime())
+//        val datetimeString = "2023-05-20T21:22:00.000-04:00"
+//        val datetimeString2 = "2023-05-20T20:22:00.000-06:00"
+//
+//        val task = Task("testing", NotionTime(datetimeString2), datetimeString, false, false, "123")
+//
+//        //val datetimeString2 = "2023-05-20"
+//
+//        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'[HH:mm:ss.SSSXXX]")
+//        val formatter2 = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+//
+//        val dateTime = ZonedDateTime.parse(datetimeString, formatter)
+//        val utcDateTime = dateTime.withZoneSameInstant(ZoneOffset.UTC)
+//
+//        //val dateTime2 = ZonedDateTime.parse(datetimeString2, formatter2)
+//        println("Parsed datetime: ${utcDateTime.toLocalDateTime()}")
+//        val a = LocalDateTime.now(ZoneOffset.UTC) > task.remindDate.getLocalDateTime();
+//        println(a)
+//        println(task.remindDate.getLocalDateTime())
         //  println("Parsed datetime: $dateTime2")
 //        val utcDateTime: ZonedDateTime = dateTime.withZoneSameInstant(ZoneOffset.UTC)
 //        val utcDateTime2: ZonedDateTime = dateTime2.withZoneSameInstant(ZoneOffset.UTC)
