@@ -123,7 +123,8 @@ class NotionHelper constructor(private val client: NotionClient) {
                 map["Time"]?.date?.end!!,
                 DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
             )
-
+            if (LocalDate.now() > end.toLocalDate())
+                continue
             val mutableList: MutableList<DayOfWeek> = mutableListOf()
             for (i in map["Days"]?.multiSelect!!) {
                 mutableList.add(getDayOfWeek(i.name!!))
