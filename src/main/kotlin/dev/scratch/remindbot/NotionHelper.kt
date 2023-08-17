@@ -152,6 +152,10 @@ class NotionHelper constructor(private val client: NotionClient) {
                     )
                 )
             )
+        /*
+        Print out the id of the owner of the notion database
+         */
+
         val list = mutableListOf<Task>()
 
         for (result in queryResult.results) {
@@ -159,7 +163,6 @@ class NotionHelper constructor(private val client: NotionClient) {
             val map = result.properties
 
             val name = map["Name"]?.title?.get(0)?.plainText ?: "UNKNOWN"
-
 
             val remindTime = map["Remind_Date"]?.date?.start ?: "UNKNOWN"
             val dueDate = map["Due Date"]?.date?.start ?: "UNKNOWN"

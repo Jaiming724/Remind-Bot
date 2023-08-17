@@ -11,7 +11,7 @@ class EncryptionTest {
     fun encryption() {
 
         val password = ""
-        val choice = "Decypt"
+        val choice = "Encypt"
         if (password == "") {
             throw IllegalStateException("No password")
         }
@@ -38,7 +38,7 @@ class EncryptionTest {
             val map = result.properties
             if (map.isNotEmpty() && map["Name"]?.title?.isNotEmpty() == true) {
                 val name = map["Name"]?.title?.get(0)?.plainText ?: "UNKNOWN"
-                if (choice == "Encypt") {
+                if (choice == "Encrypt") {
                     val myEncryptedText = textEncryptor.encrypt(name);
                     client.updatePage(
                         pageId = result.id,

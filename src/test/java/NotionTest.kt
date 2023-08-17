@@ -1,8 +1,11 @@
 import dev.scratch.remindbot.NotionHelper
 import dev.scratch.remindbot.Task
-import dev.scratch.remindbot.util.NotionTime
+import dev.scratch.scheduler.util.DateTimeOptional
+import dev.scratch.scheduler.util.SimpleDate
+import dev.scratch.scheduler.util.SimpleDateTime
 import notion.api.v1.NotionClient
 import notion.api.v1.http.OkHttp4Client
+import notion.api.v1.model.pages.PageProperty
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import java.time.*
@@ -41,30 +44,67 @@ class NotionTest {
 //        println(utcDateTime2)
     }
 
-//    @Test
-//    fun taskTests() {
-//        val client = NotionClient(System.getenv("notion"));
-//        client.httpClient = OkHttp4Client()
-//        val timeOffset: String = (ZoneOffset.systemDefault().rules.getOffset(Instant.now()).toString())
-//        assertEquals(timeOffset, "-05:00")
-//        val notionTest = NotionHelper(client)
-//        val task = Task("Testing Task", NotionTime("2022-06-09T20:34:00.000-05:00"), "2022-06-09", false, true)
-//        task.id = notionTest.addTask(task)
-//        var tasks = notionTest.getTasks()
-//        assertTrue(task in tasks)
-//        task.id = notionTest.markAsCompleted(task.id)
-//        tasks = notionTest.getTasks()
-//        assertFalse(task in tasks)
-//        task.id = notionTest.markAsNotStarted(task.id)
-//        tasks = notionTest.getTasks()
+    @Test
+    fun editTime() {
+        val client = NotionClient(System.getenv("notion"))
+        //create datetime format for 2023-08-20T13:00-04:00
+        //val t = DateTimeOptional("2023-08-20T13:00:00.000-04:00")
+        val formatter = DateTimeFormatter.ofPattern(DateTimeFormatter.ISO_OFFSET_DATE_TIME.toString())
+        val dateTime = LocalDateTime.parse("2023-08-20T13:00:00.000-04:00", formatter)
+//        when(t){
+//            is SimpleDateTime -> {
+//                println(t.dateTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+//            }
 //
-//        val removeTask = tasks.filter { it.name == "Testing Task" }
+//            is SimpleDate -> {
+//                println(t.date.toString())
+//            }
+//        }
+//        val id = "d9c5615b-1bd4-4911-940b-d00a4e7c38a5"
 //
-//        notionTest.removeTask(removeTask[0].id)
-//        tasks = notionTest.getTasks()
+//        val instant = Instant.parse("2023-08-11T15:20:00.000Z") // Parse the ISO string to Instant
 //
-//        assertFalse(task in tasks)
-//        println(LocalDate.now().toString())
-//    }
+//
+//        val newYorkZone = ZoneId.of("America/New_York")
+//        val newYorkOffset = newYorkZone.rules.getOffset(Instant.now())
+//        val estDateTime = instant.atOffset(newYorkOffset) // Convert to OffsetDateTime with EST offset
+//
+//        val temp = client.updatePage(
+//            pageId = id,
+//            properties = mapOf(
+//                "Remind_Date" to PageProperty(
+//                    date = PageProperty.Date(estDateTime.toString())
+//                ),
+//            )
+//        ).id
+
+    }
+
+
+    @Test
+    fun taskTests() {
+        val client = NotionClient(System.getenv("notion"));
+        client.httpClient = OkHttp4Client()
+        val timeOffset: String = (ZoneOffset.systemDefault().rules.getOffset(Instant.now()).toString())
+        assertEquals(timeOffset, "-04:00")
+        val notionTest = NotionHelper(client)
+        val task = Task("Testing Task", DateTimeOptional("2023-07-30T20:34:00.000-04:00"), "2022-06-09", false, true)
+        task.id = notionTest.addTask(task)
+        var tasks = notionTest.getTasks()
+        assertTrue(task in tasks)
+        task.id = notionTest.markAsCompleted(task.id)
+        tasks = notionTest.getTasks()
+        assertFalse(task in tasks)
+        task.id = notionTest.markAsNotStarted(task.id)
+        tasks = notionTest.getTasks()
+
+        val removeTask = tasks.filter { it.name == "Testing Task" }
+
+        notionTest.removeTask(removeTask[0].id)
+        tasks = notionTest.getTasks()
+
+        assertFalse(task in tasks)
+        println(LocalDate.now().toString())
+    }
 
 }
